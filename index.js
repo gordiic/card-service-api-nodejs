@@ -1,24 +1,12 @@
 const express = require('express');
 const app = express();
-
+const dbRepo=require('./dbRepository');
 var bodyParser = require('body-parser')
 var jsonParser = bodyParser.json()
-
-
-
-
 var axios = require('axios');
-
 const cors = require('cors');
-
-const { createClient } =require("@supabase/supabase-js");
-
 const { createLogger, format, transports } = require("winston");
 
-//database pw:12345678910nebojsa
-const supabaseUrl = 'https://kmvvsovezjeqmtobddtk.supabase.co'
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttdnZzb3ZlemplcW10b2JkZHRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzI4NDk1ODEsImV4cCI6MTk4ODQyNTU4MX0.O5kOMXcOJr_mfNqoOOoXCkRpbX_ywd5l51pbhdWjlJI"
-const supabase = createClient(supabaseUrl, supabaseKey)
 const logLevels = {
   fatal: 0,
   error: 1,
@@ -36,7 +24,7 @@ const logger = createLogger({
   exceptionHandlers: [new transports.File({ filename: "exceptions.log" })],
   rejectionHandlers: [new transports.File({ filename: "rejections.log" })],
 });
-app.listen(7000, () => console.log(`Server Started on ${7000}`));
+app.listen(9000, () => console.log(`Server Started on ${9000}`));
 
 //PCC evidentira zahtev, proverava ga i usmerava ka servisu banke izdavaoca spram PAN-a.
 //Dolazni podaci od banke
@@ -58,7 +46,14 @@ app.listen(7000, () => console.log(`Server Started on ${7000}`));
   //   card_h_name,
   //   exp_date
   // }
-  
+  //Dolazni podaci od druge banke
+  // {
+  //   successful,
+  //   acquirerer_order_id,
+  //   acquirerer_timestamp,
+  //   issuer_order_id,
+  //   issuer_timestamp
+  // }
   //Odgovor ka banci prvoj
    //Odlazni podaci
   // {
@@ -67,27 +62,20 @@ app.listen(7000, () => console.log(`Server Started on ${7000}`));
   //   issuer_order_id,
   //   issuer_timestamp
   // }
-app.get('/get-bank-of-card', jsonParser, async(req, res) => 
+app.post('/payment-request', jsonParser, async(req, res) => 
 {
-    console.log("body",req.body)
+    console.log("body ",req.body)
 
     try{
-        //dobavljanje id banke i url banke
-        //ispraviti tabelu u bazi 
-        const {data, error}= await supabase
-        .from('credit-cards')
-        .select('bank_url', 'bank_id')
-        .eq('pan', req.body.pan)
-       
-        console.log(data)
-        logger.info(`from:${req.url}. sending response: ${data}`);
-
-        //treba poslati na data.url zahtjev za transakciju, i tu poslati podatke o kartici i 
-        //parama koje treba da se skinu 
-        //kad se to obavi odgovor poslati banci od prodavnice da je odradjeno 
-        //dakle sve isto treba da se posalje toj drugoj banci kao sto se poslalo prvoj banci, jer treba da budu iste aplikacije, samo razliciti portovi
-        // isti endpoint gadja kao front banke
-        res.send(data);
+      //dobavljanje id banke i url banke
+      //ispraviti tabelu u bazi 
+      
+      const bank= await dbRepo.getBankByPan(req.body.pan.substring(0,6)); 
+      console.log(bank);
+      const addResp= await dbRepo.addRequest(req.body);
+       const data=await axios.post(`${bank.url}/extern-payment-request`,req.body);
+        console.log(data.data);
+        res.send(data.data);
       }
       catch(e)
       {
