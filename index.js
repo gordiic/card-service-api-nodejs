@@ -73,9 +73,9 @@ app.post('/payment-request', jsonParser, async(req, res) =>
       const bank= await dbRepo.getBankByPan(req.body.pan.substring(0,6)); 
       console.log(bank);
       const addResp= await dbRepo.addRequest(req.body);
-       const data=await axios.post(`${bank.url}/extern-payment-request`,req.body);
-        console.log(data.data);
-        res.send(data.data);
+      const data=await axios.post(`${bank.url}/extern-payment-request`,req.body);
+      console.log(data.data);
+      res.send(data.data);
       }
       catch(e)
       {
