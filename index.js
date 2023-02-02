@@ -24,46 +24,14 @@ const logger = createLogger({
   exceptionHandlers: [new transports.File({ filename: "exceptions.log" })],
   rejectionHandlers: [new transports.File({ filename: "rejections.log" })],
 });
-app.listen(9000, () => console.log(`Server Started on ${9000}`));
-
-//PCC evidentira zahtev, proverava ga i usmerava ka servisu banke izdavaoca spram PAN-a.
-//Dolazni podaci od banke
-  // {
-  //   acquirer_order_id,
-  //   acquirer_timestamp,
-  //   pan,
-  //   csc,
-  //   card_h_name,
-  //   exp_date
-  // }
-
-  //Odlazni podaci - zahtjev ka banci drugoj
-  // {
-  //   acquirer_order_id,
-  //   acquirer_timestamp,
-  //   pan,
-  //   csc,
-  //   card_h_name,
-  //   exp_date
-  // }
-  //Dolazni podaci od druge banke
-  // {
-  //   successful,
-  //   acquirerer_order_id,
-  //   acquirerer_timestamp,
-  //   issuer_order_id,
-  //   issuer_timestamp
-  // }
-  //Odgovor ka banci prvoj
-   //Odlazni podaci
-  // {
-  //   acquirer_order_id,
-  //   acquirer_timestamp,
-  //   issuer_order_id,
-  //   issuer_timestamp
-  // }
+const port=9000;
+app.listen(port, () => {
+  console.log(`Server Started on ${port}`);
+  logger.info(`Server started on ${port}. Time: ${new Date()}`);
+});
 app.post('/payment-request', jsonParser, async(req, res) => 
 {
+  logger.info(`Payment request. Time: ${new Date()}`);
     console.log("body ",req.body)
 
     try{
@@ -73,6 +41,7 @@ app.post('/payment-request', jsonParser, async(req, res) =>
       const bank= await dbRepo.getBankByPan(req.body.pan.substring(0,6)); 
       console.log(bank);
       const addResp= await dbRepo.addRequest(req.body);
+      logger.info(`Sending request to ${bank.url}. Time: ${new Date()}`);
       const data=await axios.post(`${bank.url}/extern-payment-request`,req.body);
       console.log(data.data);
       res.send(data.data);
